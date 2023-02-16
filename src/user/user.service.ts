@@ -25,6 +25,14 @@ export class UserService {
       where: { id: id },
     });
   }
+  async findByEmail(email: string): Promise<IUser> {
+    return this.prisma.user.findFirst({
+      where: {
+        email: email,
+      },
+    });
+  }
+
   async update(id: number, data: UpdatePutUserDTO) {
     await this.exists(id);
     return this.prisma.user.update({
@@ -47,11 +55,10 @@ export class UserService {
   }
 
   async exists(id: number) {
-    if (
-      !(await this.prisma.user.count({
-        where: { id: id },
-      }))
-    ) {
+    const findUser = await this.prisma.user.count({
+      where: { id: id },
+    });
+    if (findUser) {
       throw new NotFoundException(`O usuário ${id} não exite`);
     }
   }
