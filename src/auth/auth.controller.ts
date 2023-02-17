@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Request } from '@nestjs/common';
+import { Body, Controller, Headers, Post, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ForgetDTO } from './dto/auth-forget.dto';
 import { AuthLoginDTO } from './dto/auth-login.dto';
@@ -33,9 +33,9 @@ export class AuthController {
     return reset;
   }
   @Post('verify')
-  async me(@Request() req) {
-    const token = req.headers.authorization.replace('Bearer ', '');
-    const reset = await this.authService.checkToken(token);
+  async me(@Headers('authorization') token) {
+    const jwt = token.replace('Bearer ', '');
+    const reset = await this.authService.checkToken(jwt);
     return reset;
   }
 }
