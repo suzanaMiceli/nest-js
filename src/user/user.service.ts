@@ -58,7 +58,7 @@ export class UserService {
     const findUser = await this.prisma.user.count({
       where: { id: id },
     });
-    if (findUser) {
+    if (!findUser) {
       throw new NotFoundException(`O usuário ${id} não exite`);
     }
   }
