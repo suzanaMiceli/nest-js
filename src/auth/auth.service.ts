@@ -9,6 +9,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
 import { AuthRegisterDTO } from './dto/auth-register.dto';
 import * as bcrypt from 'bcrypt';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly userServise: UserService,
+    private readonly mailer: MailerService,
   ) {}
 
   createToken(user: User) {
@@ -84,19 +86,47 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Email is invalid');
     }
-    //TO DO: send email
+    const token = this.jwtService.sign(
+      { id: user.id },
+      {
+        expiresIn: '20 minutes',
+        subject: String(user.id),
+        issuer: 'forget',
+        audience: 'users',
+      },
+    );
+    //we don't have a frontend so we can send a token
+    await this.mailer.sendMail({
+      subject: 'Recuperação de senha',
+      to: 'srn.suzana@gmail.com',
+      template: 'forget',
+      context: {
+        name: user.name,
+        token,
+      },
+    });
     //return true because i just need to send the email...
     return true;
   }
 
   async reset(password: string, token: string) {
-    //TODO: validate token....
-    const id = 0; // id from the token
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: { password },
-    });
-    return this.createToken(user);
+    try {
+      const data: any = this.jwtService.verify(token, {
+        issuer: 'forget',
+        audience: 'users',
+      });
+
+      if (isNaN(Number(data.id))) {
+        throw new BadRequestException('token inválido');
+      }
+      const user = await this.prisma.user.update({
+        where: { id: data.id },
+        data: { password },
+      });
+      return this.createToken(user);
+    } catch (e) {
+      throw new BadRequestException(e.message, e.name);
+    }
   }
   async register(data: AuthRegisterDTO) {
     const findUser = await this.userServise.findByEmail(data.email);
