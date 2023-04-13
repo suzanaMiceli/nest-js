@@ -119,6 +119,9 @@ export class AuthService {
       if (isNaN(Number(data.id))) {
         throw new BadRequestException('token inválido');
       }
+
+      const salt = await bcrypt.genSalt();
+      password = await bcrypt.hash(password, salt);
       const user = await this.prisma.user.update({
         where: { id: data.id },
         data: { password },
